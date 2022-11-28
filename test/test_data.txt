@@ -1,0 +1,146 @@
+constructor
+usdt - 0xbC075d7f9e22CF8bec43F5Ab98c6E3613746a551
+referral - 0x6E8903fAD5298aFA3E595702c616459A73Bc7e1C
+insurance - 0x6E8903fAD5298aFA3E595702c616459A73Bc7e1C
+receiver - ["0x5e7f2CcAB8ca8c5FC4Aa07D9c2385477A4a052d9",
+"0xc5b4bcAf755fabBfBEd023Ee38fb917Bd1832D6C"]
+
+$10000 ->  0x000000000000000000000000000000000000000000000000000000174876E800
+Before test all account faucet as $100000, 1 matic, approve all as much as $10000 on contract
+account list - will test 
+
+[
+  '0x6E8903fAD5298aFA3E595702c616459A73Bc7e1C',
+  '0x6F8e1602E67d1e45301d8f9CeC59e58c55D965d8',
+  '0x5e7f2CcAB8ca8c5FC4Aa07D9c2385477A4a052d9',
+  '0xb6f59D81715B17CbAD517A2e35D7dAC8E0439440',
+  '0xaE88aD76c505A94ce69BB2ac23FCA17E1c654749',
+  '0x14043dEE22E11340D43e69dE5A226480aA84069E',
+  '0x639D9009E413cE99Be807A7cD04DF253ee688655',
+  '0xB13A193F6EaD9130ffDfB3c840dc769D722544aF',
+  '0x41979BE81EcBCF1ca83c8e21476B0565a6d3f6F8',
+  '0x860a8ab0CF94F469cea69125E7d85f217C2A7795',
+  '0x38dC4155fEA3a145b604EA80bfdfAfE793e63233',
+  '0x1C2393C86a8B61cE8c4510152C07DE36d4484FEC'
+]
+
+1. 0x6E8903fAD5298aFA3E595702c616459A73Bc7e1C
+2. 0x6F8e1602E67d1e45301d8f9CeC59e58c55D965d8
+3. 0x5e7f2CcAB8ca8c5FC4Aa07D9c2385477A4a052d9
+4. 0xb6f59D81715B17CbAD517A2e35D7dAC8E0439440
+5. 0xaE88aD76c505A94ce69BB2ac23FCA17E1c654749
+6. 0x14043dEE22E11340D43e69dE5A226480aA84069E
+7. 0x639D9009E413cE99Be807A7cD04DF253ee688655
+8. 0x78CB81552f6bc27499022e415eEb4a778f196895
+9. 0xB13A193F6EaD9130ffDfB3c840dc769D722544aF
+10. 0x41979BE81EcBCF1ca83c8e21476B0565a6d3f6F8
+11. 0x860a8ab0CF94F469cea69125E7d85f217C2A7795
+12. 0x38dC4155fEA3a145b604EA80bfdfAfE793e63233
+
+test data
+1. 0x6E8903fAD5298aFA3E595702c616459A73Bc7e1C - default referral - min wallet amount : $10000 -> register  ---------- 1
+1 cycle: $500
+2 cycle: $500
+3 cycle: $500
+4 cycle: $1000
+
+2. 0x6F8e1602E67d1e45301d8f9CeC59e58c55D965d8 - referral -> 0x6E8903fAD5298aFA3E595702c616459A73Bc7e1C -> register --------- 1
+1: $500
+2. $100(maybe fail), $500
+3. $600
+4. $1000
+
+3. 0x5e7f2CcAB8ca8c5FC4Aa07D9c2385477A4a052d9 -> referral -> 0x6F8e1602E67d1e45301d8f9CeC59e58c55D965d8 -----------------2
+1. $100
+2. $100
+3. $100
+4. $100
+
+4. 0xb6f59D81715B17CbAD517A2e35D7dAC8E0439440 -> referral -> 0x6E8903fAD5298aFA3E595702c616459A73Bc7e1C ----------------- 1
+1. $1000 ($50 fail, $3000 fail)
+2. $1000
+3. $1000
+4. $1000
+
+5. 0xaE88aD76c505A94ce69BB2ac23FCA17E1c654749 -> referral -> 0xb6f59D81715B17CbAD517A2e35D7dAC8E0439440 ---------------- 4
+1. $2500
+2. $2500
+3. $2500
+4. $2500
+
+6. 0x14043dEE22E11340D43e69dE5A226480aA84069E -> referral -> 0xb6f59D81715B17CbAD517A2e35D7dAC8E0439440 --------------- 4
+1. $2500
+2. $2500
+3. $2500
+4. $2500
+
+7. 0x639D9009E413cE99Be807A7cD04DF253ee688655 -> referral -> 0xaE88aD76c505A94ce69BB2ac23FCA17E1c654749 --------------- 5
+1. $2500
+2. $2500
+3. $2500
+4. $2500
+
+8. 0x78CB81552f6bc27499022e415eEb4a778f196895 -> referral -> 0xaE88aD76c505A94ce69BB2ac23FCA17E1c654749 --------------- 5
+1. $2500
+2. $2500
+3. $2500
+4. $2500
+
+9. 0xB13A193F6EaD9130ffDfB3c840dc769D722544aF -> referral -> 0xaE88aD76c505A94ce69BB2ac23FCA17E1c654749 --------------- 5
+1. $2500
+2. $2500
+3. $2500
+4. $2500
+
+10. 0x41979BE81EcBCF1ca83c8e21476B0565a6d3f6F8 -> referral -> 0xaE88aD76c505A94ce69BB2ac23FCA17E1c654749 --------------- 5
+1. $2500
+2. $2500
+3. $2500
+4. $2500
+
+11. 0x860a8ab0CF94F469cea69125E7d85f217C2A7795 -> referral -> 0xaE88aD76c505A94ce69BB2ac23FCA17E1c654749 --------------- 5
+1. $2500
+2. $2500
+3. $2500
+4. $2500
+
+12. 0x38dC4155fEA3a145b604EA80bfdfAfE793e63233 -> referral -> 0xaE88aD76c505A94ce69BB2ac23FCA17E1c654749 --------------- 5
+1. $2500
+2. $2500
+3. $2500
+4. $2500
+
+
+ - user1(this is default referral) ->referral -> user1(current)
+1. $100
+2. $100
+level - 0 -> 5%
+booster reward -> 15%
+team - 4
+teamdeposit -> $400
+direct reward -> 5% of $400
+infinity reward -> 0
+1kmore lucky reward -> 0
+ - user2 -> referral ->  user1
+1. $100
+1. $100
+normal reward -> 15%
+level reward -> now this level is 1 -> 1%
+ - user3 -> referral ->  user1
+1. $100
+1. $100
+normal reward -> 15%
+level reward -> now this level is 1 -> 1%
+ - user4 -> referral ->  user1
+1. $100
+1. $100
+
+normal reward -> 15%
+level reward -> now this level is 1 -> 1%
+ - user5 -> referral ->  user1
+1. $100
+1. $100
+
+
+normal reward -> 15%
+level reward -> now this level is 1 -> 1%
