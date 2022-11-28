@@ -1,5 +1,35 @@
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.16;
 // SPDX-License-Identifier: Unlicensed
+
+interface AggregatorV3Interface {
+  function decimals() external view returns (uint8);
+
+  function description() external view returns (string memory);
+
+  function version() external view returns (uint256);
+
+  function getRoundData(uint80 _roundId)
+    external
+    view
+    returns (
+      uint80 roundId,
+      int256 answer,
+      uint256 startedAt,
+      uint256 updatedAt,
+      uint80 answeredInRound
+    );
+
+  function latestRoundData()
+    external
+    view
+    returns (
+      uint80 roundId,
+      int256 answer,
+      uint256 startedAt,
+      uint256 updatedAt,
+      uint80 answeredInRound
+    );
+}
 
 interface IERC20 {
 
@@ -627,18 +657,42 @@ contract OCP is Context, IERC20, Ownable {
     using Address for address payable;
     using SafeMath for uint256;
 
+    AggregatorV3Interface internal priceFeed;
+    uint256 private _presaleTotal = 750_000_000 * 10**18;
+    uint256 private _presalePrice = 10**14;
+    uint256 private _presaleMin = 25*10**18;
+    uint256 private _presaleMax = 250*10**18;
+    uint256 private _presaleLockTime = 30 days;
+    uint256 private _presaleTime = 10 days;
+    uint256 private _limitTime = 1 days;
+    uint256 private _startTime;
+    uint256 public _presaledAmount;
+    bool private _isDistFounder = false;
+    uint256 private _founderTotal = 375_000_000 *10**18;
+    uint256 private _founderLockTime = 150 days;
+    uint256 private _marketingTotal = 375_000_000 *10**18;
+    uint256 private _marketingLockTime = 50 days;
+    address public _marketingWallet;
+    uint256 public _marketingLock;
+
     IUniswapV2Router02 public uniswapV2Router;
     address public uniswapV2Pair;
 
     struct Transferlimit {
-            uint256 start_limit;
-            uint256 transferdamount;
-            uint256 first_start_limit;
-        }
+        uint256 start_limit;
+        uint256 transferdamount;
+        uint256 first_start_limit;
+    }
 
-    struct presaleinfo{
+    struct PresaleInfo{
         bool prebuyflag;
         uint256 prebuyamount;
+        uint256 pretransferdamount;
+    }
+
+    struct Founderinfo{
+        bool flag;
+        uint256 amount;
         uint256 pretransferdamount;
     }
     
@@ -649,13 +703,10 @@ contract OCP is Context, IERC20, Ownable {
     mapping (address => bool) public Blacklist;
     mapping (address => bool) public Whitelist;
     mapping (address => Transferlimit) public transferlimitinfo;
-    mapping (address => presaleinfo) public prebuyinfo;
-
-    uint256 public locktimeforpresaldtoken;
-
+    mapping (address => PresaleInfo) public _prebuyInfo;
+    mapping (address => Founderinfo) public _founderInfo;
 
     uint256 private _tTotal = 7_500_000_000 * 10**18;
-    uint256 private _presaleTotal = 750_000_000 * 10**18;
 
     string private constant _name = "Ordinary Citizen Project";
     string private constant _symbol = "OCP";
@@ -664,15 +715,14 @@ contract OCP is Context, IERC20, Ownable {
     uint256 private numTokensToAddToLiquidity = 1000_000 * 10**18;
 
      //  buy fee
-    uint256 public _BuyLiquidityFee = 5;
-    uint256 public _BuyLoteryFee = 5;
+    uint256 public _BuyLiquidityFee = 0;
+    uint256 public _BuyLoteryFee = 0;
     
     // sell fee
     uint256 public _SellLiquidityFee = 5;
     uint256 public _SellLoteryFee = 5;
 
     // Daily buy and sell limit
-
     uint256 DailyTransferimit = 5_000_000 * 10**18;
 
     address public _Loterytempwallet = 0xCcB461CAFcA61D9e6ebc1eF792dF91b1189D4977;
@@ -691,16 +741,20 @@ contract OCP is Context, IERC20, Ownable {
     constructor () {          
         // pancake swap router on main net - 0x10ED43C718714eb63d5aA57B78B54704E256024E
         // pancake swap router on test net - 0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3
-        IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3); // 0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3
+        // IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3); // 0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3
+        uniswapV2Router = IUniswapV2Router02(0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3); // 0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3
       
         // Create a uniswap pair for this new token
-        address _uniswapV2Pair = IUniswapV2Factory(_uniswapV2Router.factory()).createPair(address(this), _uniswapV2Router.WETH());
-        uniswapV2Pair = _uniswapV2Pair;
+        uniswapV2Pair = IUniswapV2Factory(uniswapV2Router.factory()).createPair(address(this), uniswapV2Router.WETH());
         Whitelist[address(msg.sender)] = true;
         Whitelist[Founder_wallet] = true;
         Whitelist[uniswapV2Pair] = true;
 
         _tOwned[Founder_wallet] = _tTotal;
+        _startTime = block.timestamp;
+        //bsc main net chainlink bnb / usd price feed contract address - 0x0567F2323251f0Aab15c8dFb1967E4e8A7D42aeE
+        //bsc main net chainlink bnb / usd price feed contract address - 0x2514895c72f50D8bd4B4F9b1110F0D6bD2c97526
+        priceFeed = AggregatorV3Interface(0x2514895c72f50D8bd4B4F9b1110F0D6bD2c97526);
         emit Transfer(address(0), Founder_wallet, _tTotal);
     }
 
@@ -754,7 +808,6 @@ contract OCP is Context, IERC20, Ownable {
         return true;
     }
     
-    
     function setLoteryTempWallet(address _LTW) external onlyOwner() {
          _Loterytempwallet = _LTW;
     }
@@ -769,12 +822,11 @@ contract OCP is Context, IERC20, Ownable {
     }  
 
     function _getSellValues(uint256 amount) private view returns (uint256) {
-        uint256 LiquiditySellFee = amount.mul(_BuyLiquidityFee).div(100); 
-        uint256 LoterySellFee = amount.mul(_BuyLoteryFee).div(100); 
+        uint256 LiquiditySellFee = amount.mul(_SellLiquidityFee).div(100); 
+        uint256 LoterySellFee = amount.mul(_SellLoteryFee).div(100); 
         return (amount - LiquiditySellFee - LoterySellFee);
     }
 
-    
     function _approve(address owner, address spender, uint256 amount) private {
         require(owner != address(0), "ERC20: approve from the zero address");
         require(spender != address(0), "ERC20: approve to the zero address");
@@ -792,20 +844,33 @@ contract OCP is Context, IERC20, Ownable {
         require(to != address(0), "ERC20: transfer to the zero address");
         require(amount > 0, "Transfer amount must be greater than zero");  
         require(Blacklist[from] != true && Blacklist[to] != true,"Can not use this address.");  
+        require(_tOwned[from] >= amount, "You dont have enough balance.");
         uint256 transferAmount = amount;
-        presaleinfo storage user = prebuyinfo[from];
-        if(user.prebuyflag){
-            require(block.timestamp > locktimeforpresaldtoken,"Presold tokens are currently locked.");
-            if((user.pretransferdamount + amount) < user.prebuyamount){
-               _tOwned[from] -= amount;
-               _tOwned[to] += transferAmount;
-               emit Transfer(from, to, transferAmount);
-               return;
+        PresaleInfo storage user = _prebuyInfo[from];
+        if(user.prebuyflag) {
+            if(block.timestamp > _startTime + _presaleLockTime) {
+                if((user.pretransferdamount + amount) <= user.prebuyamount) {
+                    require(_tOwned[from] - user.prebuyamount + user.pretransferdamount >= amount, "Your balance is not enough.");
+                    user.pretransferdamount += amount;
+                    if(user.pretransferdamount == user.prebuyamount) {
+                        user.prebuyflag = false;
+                    }
+                }
+            } else {
+                require(_tOwned[from] - user.prebuyamount >= amount, "Your balance is locked");
             }
-            else{
-                user.prebuyflag = false;
-                return;
-            }
+            // require(block.timestamp > _startTime + _presaleLockTime,"Presold tokens are currently locked.");
+            // if((user.pretransferdamount + amount) <= user.prebuyamount){
+            //    _tOwned[from] -= amount;
+            //    _tOwned[to] += transferAmount;
+            //    user.pretransferdamount += amount;
+            //    emit Transfer(from, to, transferAmount);
+            //    return;
+            // }
+            // else{
+            //     user.prebuyflag = false;
+            //     return;
+            // }
         }
         uint256 contractTokenBalance = balanceOf(address(this));
         
@@ -820,7 +885,7 @@ contract OCP is Context, IERC20, Ownable {
         {
             require(amount < DailyTransferimit,"can not transfer this amount.");
             Transferlimit storage userlimitinfo = transferlimitinfo[from];
-            if(userlimitinfo.start_limit + 1 hours < block.timestamp){
+            if(userlimitinfo.start_limit + _limitTime < block.timestamp){
                  userlimitinfo.start_limit = 0;
                  userlimitinfo.transferdamount = 0;
              }
@@ -831,7 +896,7 @@ contract OCP is Context, IERC20, Ownable {
                   userlimitinfo.first_start_limit = block.timestamp;
                 }
             else{                 
-                  require(userlimitinfo.transferdamount + amount < DailyTransferimit, "Can not transfer this amount.");
+                  require(userlimitinfo.transferdamount + amount < DailyTransferimit, "Can not transfer this amount. You can only tranfer limited amount of token per day");
                   userlimitinfo.transferdamount += amount;
                 }
             if(from == uniswapV2Pair)
@@ -920,17 +985,79 @@ contract OCP is Context, IERC20, Ownable {
     }
 
     function setDailyTransferLimitAmount( uint256 _transferlimitamount) external onlyOwner{
-        DailyTransferimit = _transferlimitamount * 10**18;
+        require(_transferlimitamount >= 1 && _transferlimitamount <= 3000, "transferlimit amount exceed correct amount.");
+        DailyTransferimit = _transferlimitamount*2_500_000*10**18;
     }
 
-    function setpresaleaddress(address presaleaddress, uint256 buyamount) external onlyOwner{
-        presaleinfo storage user = prebuyinfo[presaleaddress];
+    // function setpresaleaddress(address presaleaddress, uint256 buyamount) external onlyOwner{
+    //     PresaleInfo storage user = _prebuyInfo[presaleaddress];
+    //     user.prebuyflag = true;
+    //     user.prebuyamount = buyamount;
+    // }
+
+    function setLanuchDate(uint256 _launch) public onlyOwner {
+        _startTime = _launch;
+    }
+
+    function currentDateTime() public view returns(uint256){
+        return block.timestamp;
+    }
+
+    function getLatestPrice() public view returns (int) {
+        (,/*uint80 roundID*/ int price /*uint startedAt*/ /*uint timeStamp*/ /*uint80 answeredInRound*/,,,) = priceFeed.latestRoundData();
+        return price;
+    }
+
+    function presaleAmountPerbnb(uint256 _amount) public view returns(uint256) {
+        uint256 amount = _amount*10**18;
+        uint256 totalPrice = amount*_presalePrice/10**18;
+        uint256 bnbPrice = uint256(getLatestPrice());
+        uint256 totalPricePerbnb = totalPrice*10**8/bnbPrice;
+        return totalPricePerbnb;
+    }
+
+    function buyTokenasPresale(uint256 _amount) public payable{
+        uint256 amount = _amount*10**18;
+        uint256 totalPrice = amount*_presalePrice/10**18;
+        require(totalPrice >= _presaleMin && totalPrice <= _presaleMax, "Amount should be 25$ <= amount <= 250$");
+        uint256 totalPricePerbnb = presaleAmountPerbnb(_amount);
+        require(msg.value >= totalPricePerbnb, "You should pay enough bnb");
+        require(_startTime + _presaleTime > block.timestamp,"Presale Season is finished.");
+        PresaleInfo storage user = _prebuyInfo[msg.sender];
+        require(user.prebuyamount + amount <= _presaleMax, "Your presale total amount exceed.");
         user.prebuyflag = true;
-        user.prebuyamount = buyamount;
+        user.prebuyamount += amount;
+        Whitelist[msg.sender] = true;
+        _presaledAmount += amount;
+        require(_presaledAmount <= _presaleTotal, "Presale Total is 10% of Total Supply.");
+        _tOwned[Founder_wallet] -= amount;
+        _tOwned[msg.sender] += amount;
     }
 
-    function setpresalelocktime(uint256 locktime) external onlyOwner{
-        locktimeforpresaldtoken = locktime;
+    function withdraw() public onlyOwner {
+        payable(msg.sender).transfer(address(this).balance);
     }
 
+    function setFounders(address[] memory _list) public onlyOwner {
+        require(_list.length == 4, "4 founders exist");
+        require(_isDistFounder == false, "Already distributed founder coin");
+        uint256 _amount = _founderTotal / 4;
+        for(uint256 i = 0;i < 4;i++){
+            Founderinfo storage _info = _founderInfo[_list[i]];
+            _info.flag = true;
+            _info.amount = _amount;
+            _info.pretransferdamount = 0;
+            _tOwned[_list[i]] += _amount;
+        }
+        _tOwned[Founder_wallet] -= _founderTotal;
+        _isDistFounder = true;
+    }
+
+    function setMarket(address _user) public onlyOwner {
+        require(_marketingWallet == address(0), "Already gave marketing wallet coin");
+        _marketingWallet = _user;
+        _marketingLock = _marketingTotal / 2;
+        _tOwned[Founder_wallet] -= _marketingTotal;
+        _tOwned[_user] += _marketingTotal;
+    }
 }
