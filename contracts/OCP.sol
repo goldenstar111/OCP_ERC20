@@ -690,7 +690,7 @@ contract OCP is Context, IERC20, Ownable {
         uint256 pretransferdamount;
     }
 
-    struct Founderinfo{
+    struct FounderInfo{
         bool flag;
         uint256 amount;
         uint256 pretransferdamount;
@@ -704,7 +704,7 @@ contract OCP is Context, IERC20, Ownable {
     mapping (address => bool) public Whitelist;
     mapping (address => Transferlimit) public transferlimitinfo;
     mapping (address => PresaleInfo) public _prebuyInfo;
-    mapping (address => Founderinfo) public _founderInfo;
+    mapping (address => FounderInfo) public _founderInfo;
 
     uint256 private _tTotal = 7_500_000_000 * 10**18;
 
@@ -846,32 +846,48 @@ contract OCP is Context, IERC20, Ownable {
         require(Blacklist[from] != true && Blacklist[to] != true,"Can not use this address.");  
         require(_tOwned[from] >= amount, "You dont have enough balance.");
         uint256 transferAmount = amount;
+        
+        //Presale Lock
         PresaleInfo storage user = _prebuyInfo[from];
         if(user.prebuyflag) {
             if(block.timestamp > _startTime + _presaleLockTime) {
                 if((user.pretransferdamount + amount) <= user.prebuyamount) {
-                    require(_tOwned[from] - user.prebuyamount + user.pretransferdamount >= amount, "Your balance is not enough.");
+                    require(_tOwned[from] - user.prebuyamount + user.pretransferdamount >= amount, "Your balance is not enough cuz presale.");
                     user.pretransferdamount += amount;
                     if(user.pretransferdamount == user.prebuyamount) {
                         user.prebuyflag = false;
                     }
                 }
             } else {
-                require(_tOwned[from] - user.prebuyamount >= amount, "Your balance is locked");
+                require(_tOwned[from] - user.prebuyamount >= amount, "Your balance is locked cuz presale.");
             }
-            // require(block.timestamp > _startTime + _presaleLockTime,"Presold tokens are currently locked.");
-            // if((user.pretransferdamount + amount) <= user.prebuyamount){
-            //    _tOwned[from] -= amount;
-            //    _tOwned[to] += transferAmount;
-            //    user.pretransferdamount += amount;
-            //    emit Transfer(from, to, transferAmount);
-            //    return;
-            // }
-            // else{
-            //     user.prebuyflag = false;
-            //     return;
-            // }
         }
+        
+        //Founder Lock
+        FounderInfo storage founder = _founderInfo[from];
+        if(founder.flag) {
+            if(block.timestamp > _startTime +  _founderLockTime) {
+                require(_tOwned[from] - founder.amount + founder.pretransferdamount >= amount, "Your balance is not enough cuz founder.");
+                founder.pretransferdamount += amount;
+                if(founder.pretransferdamount == founder.amount) {
+                    founder.flag = false;
+                }
+            } else {
+                require(_tOwned[from] - founder.amount >= amount, "Your balance is locked cuz founder.");
+            }
+        }
+
+        //Marketing Lock
+        if(from == _marketingWallet) {
+            if(block.timestamp > _startTime + _marketingLockTime) {
+                if(_marketingLock > 0) {
+                    _marketingLock = 0;
+                }
+            } else {
+                require(_tOwned[_marketingWallet] - _marketingLock >= amount, "Your balance is locked cuz marketing.");
+            }
+        }
+
         uint256 contractTokenBalance = balanceOf(address(this));
         
         bool overMinTokenBalance = contractTokenBalance >= numTokensToAddToLiquidity;
@@ -989,12 +1005,6 @@ contract OCP is Context, IERC20, Ownable {
         DailyTransferimit = _transferlimitamount*2_500_000*10**18;
     }
 
-    // function setpresaleaddress(address presaleaddress, uint256 buyamount) external onlyOwner{
-    //     PresaleInfo storage user = _prebuyInfo[presaleaddress];
-    //     user.prebuyflag = true;
-    //     user.prebuyamount = buyamount;
-    // }
-
     function setLanuchDate(uint256 _launch) public onlyOwner {
         _startTime = _launch;
     }
@@ -1043,7 +1053,7 @@ contract OCP is Context, IERC20, Ownable {
         require(_isDistFounder == false, "Already distributed founder coin");
         uint256 _amount = _founderTotal / 4;
         for(uint256 i = 0;i < 4;i++){
-            Founderinfo storage _info = _founderInfo[_list[i]];
+            FounderInfo storage _info = _founderInfo[_list[i]];
             _info.flag = true;
             _info.amount = _amount;
             _info.pretransferdamount = 0;
