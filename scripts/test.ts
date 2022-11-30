@@ -16,28 +16,16 @@ async function main() {
   // If this script is run directly using `node` you may want to call compile
   // manually to make sure everything is compiled
   // await hre.run('compile');
-  let [owner, addr1, addr2, ...addrs] = await ethers.getSigners();
+  let [owner, addr1, addr2, addr3, ...addrs] = await ethers.getSigners();
   // We get the contract to deploy
-
-  const instance = await ethers.getContractAt("BonsaiNFT", "0x3B6AD64cA42BB1Ebd53439DB937f57347439377c");
+  console.log("owner: ",await owner.getAddress());
+  console.log("addr1: ",await addr1.getAddress());
+  console.log("addr2: ",await addr2.getAddress());
+  console.log("addr3: ",await addr3.getAddress());
+  const instance = await ethers.getContractAt("OCP", "0x04F31196e9D66504E5CEb7adBcDAB57c3538dA63");
   // await instance.mint(ethers.BigNumber.from(20));
   console.log("Mint Complete")
-  let totalMatch;
-  let i=0;
-  do {
-    totalMatch = await instance.matchListLength(await owner.getAddress());
-    console.log("Total Match Count", totalMatch.toNumber());
-    let res = await instance.matchList(await owner.getAddress(), i);
-    console.log("Match Pair", res[0].toNumber(), res[1].toNumber());
-    i++;
-    if(res[0].toNumber() != res[1].toNumber()) {
-      console.log("breed", res[0].toNumber(), res[1].toNumber());
-      await instance.breed(res[0], res[1]);
-      await sleep(15000);
-      console.log("breed complete");
-      i = 0;
-    }
-  } while (totalMatch.toNumber() > 0);
+
 }
 
 main().catch((error) => {
