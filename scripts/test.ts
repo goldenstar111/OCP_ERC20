@@ -22,7 +22,7 @@ async function main() {
   console.log("addr1: ",await addr1.getAddress());
   console.log("addr2: ",await addr2.getAddress());
   console.log("addr3: ",await addr3.getAddress());
-  const instance = await ethers.getContractAt("OCP", "0x04F31196e9D66504E5CEb7adBcDAB57c3538dA63");
+  const instance = await ethers.getContractAt("OCP", "0x1c4C0575a6837700B73C19E436EE1dD3b7CC7eBc");
   // await instance.mint(ethers.BigNumber.from(20));
   console.log("Mint Complete")
 

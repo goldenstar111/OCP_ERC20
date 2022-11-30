@@ -665,7 +665,7 @@ contract OCP is Context, IERC20, Ownable {
     uint256 private _presaleLockTime = 30 days;
     uint256 private _presaleTime = 10 days;
     uint256 private _limitTime = 1 days;
-    uint256 private _startTime;
+    uint256 public _startTime;
     uint256 public _presaledAmount;
     bool private _isDistFounder = false;
     uint256 private _founderTotal = 375_000_000 *10**18;
