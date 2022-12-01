@@ -1034,7 +1034,7 @@ contract OCP is Context, IERC20, Ownable {
         require(msg.value >= totalPricePerbnb, "You should pay enough bnb");
         require(_startTime + _presaleTime > block.timestamp,"Presale Season is finished.");
         PresaleInfo storage user = _prebuyInfo[msg.sender];
-        require(user.prebuyamount + amount <= _presaleMax, "Your presale total amount exceed.");
+        require(user.prebuyamount + amount <= _presaleMax*10**4, "Your presale total amount exceed.");
         user.prebuyflag = true;
         user.prebuyamount += amount;
         Whitelist[msg.sender] = true;
