@@ -659,24 +659,39 @@ contract OCP is Context, IERC20, Ownable {
 
     AggregatorV3Interface internal priceFeed;
     uint256 private _presaleTotal = 750_000_000 * 10**18;
-    uint256 private _presalePrice = 10**14;
+    // uint256 private _presalePrice = 10**14;
     uint256 private _presaleMin = 25*10**18;
     uint256 private _presaleMax = 250*10**18;
-    uint256 private _presaleLockTime = 30 days;
-    uint256 private _presaleTime = 10 days;
     uint256 private _limitTime = 1 days;
-    uint256 public _startTime;
     uint256 public _presaledAmount;
-    bool private _isDistFounder = false;
-    uint256 private _founderTotal = 375_000_000 *10**18;
-    uint256 private _founderLockTime = 150 days;
-    uint256 private _marketingTotal = 375_000_000 *10**18;
-    uint256 private _marketingLockTime = 50 days;
+    uint256 private _founderTotal = 375_000_000 * 10**18;
+    uint256 private _marketingTotal = 375_000_000 * 10**18;
     address public _marketingWallet;
     uint256 public _marketingLock;
+    address private _deployer;
+    // uint256 private _time_presalestart = 1675209600;
+    // uint256 private _time_presaleend = 1676073599;
+    // uint256 private _time_presalerelease = 1678665600;
+    // uint256 private _time_marketrelease = 1681257600;
+    // uint256 private _time_founderrelease = 1681257600;
+    
+
+    //temp trash start
+    uint256 private _time_presalestart = block.timestamp;
+    uint256 private _time_presaleend = block.timestamp + 1 hours;
+    uint256 private _time_presalerelease = block.timestamp + 2 hours;
+    uint256 private _time_marketrelease = block.timestamp + 3 hours;
+    uint256 private _time_founderrelease = block.timestamp + 3 hours;
+    uint256 private _presalePrice = 10**11;
+    //temp trash end
+
 
     IUniswapV2Router02 public uniswapV2Router;
     address public uniswapV2Pair;
+
+    event BuyPresale(address from, address to, uint256 value, uint256 amount, uint256 releasetime);
+    event SendMarket(address from, address to, uint256 amount, uint256 releasetime);
+    event SendFounder(address from, address to, uint256 amount, uint256 releasetime);
 
     struct Transferlimit {
         uint256 start_limit;
@@ -695,6 +710,12 @@ contract OCP is Context, IERC20, Ownable {
         uint256 amount;
         uint256 pretransferdamount;
     }
+
+    struct MarketInfo{
+        bool flag;
+        uint256 amount;
+        uint256 pretransferdamount;
+    }
     
     mapping (address => uint256) private _tOwned;
  
@@ -705,6 +726,7 @@ contract OCP is Context, IERC20, Ownable {
     mapping (address => Transferlimit) public transferlimitinfo;
     mapping (address => PresaleInfo) public _prebuyInfo;
     mapping (address => FounderInfo) public _founderInfo;
+    mapping (address => MarketInfo) public _marketInfo;
 
     uint256 private _tTotal = 7_500_000_000 * 10**18;
 
@@ -725,8 +747,8 @@ contract OCP is Context, IERC20, Ownable {
     // Daily buy and sell limit
     uint256 DailyTransferimit = 5_000_000 * 10**18;
 
-    address public _Loterytempwallet = 0xCcB461CAFcA61D9e6ebc1eF792dF91b1189D4977;
-    address public Founder_wallet = 0x752C1d70ad57bEe0B04B57557DcaD630F59C4154;
+    address public _Lottery_Addr;
+    address public Owner_Address = 0x752C1d70ad57bEe0B04B57557DcaD630F59C4154;
 
     bool swapping;
     
@@ -747,15 +769,19 @@ contract OCP is Context, IERC20, Ownable {
         // Create a uniswap pair for this new token
         uniswapV2Pair = IUniswapV2Factory(uniswapV2Router.factory()).createPair(address(this), uniswapV2Router.WETH());
         Whitelist[address(msg.sender)] = true;
-        Whitelist[Founder_wallet] = true;
+        Whitelist[Owner_Address] = true;
         Whitelist[uniswapV2Pair] = true;
 
-        _tOwned[Founder_wallet] = _tTotal;
-        _startTime = block.timestamp;
+        _tOwned[Owner_Address] = _tTotal;
+        emit Transfer(address(0), Owner_Address, _tTotal);
         //bsc main net chainlink bnb / usd price feed contract address - 0x0567F2323251f0Aab15c8dFb1967E4e8A7D42aeE
         //bsc main net chainlink bnb / usd price feed contract address - 0x2514895c72f50D8bd4B4F9b1110F0D6bD2c97526
         priceFeed = AggregatorV3Interface(0x2514895c72f50D8bd4B4F9b1110F0D6bD2c97526);
-        emit Transfer(address(0), Founder_wallet, _tTotal);
+        setLottery(0xD4241A3E4cD6f939D0e5C13cF311ADc25fbc6d74);
+        setMarket(0x56ca93E86547D2e21d9Ce051123f9e9503BD6691);
+        setFounders(0xA009a88202eDed07c5c0Ce3FA2fefe5d893F9A82,0x15ee292C4B9920002Ba4d895c83389945864Ee7d,0xb6C86d011c3ff463B5a1c0e8701B81a4Fb373164
+        ,0x5c1Cebbd71d01F43516ad99E31E87AEfb9B95337);
+        _deployer = msg.sender;
     }
 
     function name() public pure returns (string memory) {
@@ -808,8 +834,8 @@ contract OCP is Context, IERC20, Ownable {
         return true;
     }
     
-    function setLoteryTempWallet(address _LTW) external onlyOwner() {
-         _Loterytempwallet = _LTW;
+    function setLottery(address _LTW) private {
+         _Lottery_Addr = _LTW;
     }
  
     //to recieve ETH from uniswapV2Router when swaping
@@ -850,7 +876,7 @@ contract OCP is Context, IERC20, Ownable {
         //Presale Lock
         PresaleInfo storage user = _prebuyInfo[from];
         if(user.prebuyflag) {
-            if(block.timestamp > _startTime + _presaleLockTime) {
+            if(block.timestamp > _time_presalerelease) {
                 if((user.pretransferdamount + amount) <= user.prebuyamount) {
                     require(_tOwned[from] - user.prebuyamount + user.pretransferdamount >= amount, "Your balance is not enough cuz presale.");
                     user.pretransferdamount += amount;
@@ -866,7 +892,7 @@ contract OCP is Context, IERC20, Ownable {
         //Founder Lock
         FounderInfo storage founder = _founderInfo[from];
         if(founder.flag) {
-            if(block.timestamp > _startTime +  _founderLockTime) {
+            if(block.timestamp > _time_founderrelease) {
                 require(_tOwned[from] - founder.amount + founder.pretransferdamount >= amount, "Your balance is not enough cuz founder.");
                 founder.pretransferdamount += amount;
                 if(founder.pretransferdamount == founder.amount) {
@@ -877,9 +903,23 @@ contract OCP is Context, IERC20, Ownable {
             }
         }
 
+        //Market Lock
+        MarketInfo storage marketer = _marketInfo[from];
+        if(marketer.flag) {
+            if(block.timestamp > _time_marketrelease) {
+                require(_tOwned[from] - marketer.amount + marketer.pretransferdamount >= amount, "Your balance is not enough cuz marketer.");
+                marketer.pretransferdamount += amount;
+                if(marketer.pretransferdamount == marketer.amount) {
+                    marketer.flag = false;
+                }
+            } else {
+                require(_tOwned[from] - marketer.amount >= amount, "Your balance is locked cuz marketer.");
+            }
+        }
+
         //Marketing Lock
         if(from == _marketingWallet) {
-            if(block.timestamp > _startTime + _marketingLockTime) {
+            if(block.timestamp > _time_marketrelease) {
                 if(_marketingLock > 0) {
                     _marketingLock = 0;
                 }
@@ -897,6 +937,7 @@ contract OCP is Context, IERC20, Ownable {
         {
            swapAndLiquify(contractTokenBalance);
         }
+
         if(Whitelist[from] != true && Whitelist[to] != true)
         {
             require(amount < DailyTransferimit,"can not transfer this amount.");
@@ -919,13 +960,13 @@ contract OCP is Context, IERC20, Ownable {
             {
                transferAmount = _getBuyValues(amount);
                _tOwned[address(this)] += amount.mul(_BuyLiquidityFee).div(100);
-               _tOwned[_Loterytempwallet] += amount.mul(_BuyLoteryFee).div(100);
+               _tOwned[_Lottery_Addr] += amount.mul(_BuyLoteryFee).div(100);
             }
             if(to == uniswapV2Pair)
             {
                transferAmount = _getSellValues(amount);
                _tOwned[address(this)] += amount.mul(_SellLiquidityFee).div(100);
-               _tOwned[_Loterytempwallet] += amount.mul(_SellLoteryFee).div(100);
+               _tOwned[_Lottery_Addr] += amount.mul(_SellLoteryFee).div(100);
             }
         }
          _tOwned[from] -= amount;
@@ -1005,8 +1046,14 @@ contract OCP is Context, IERC20, Ownable {
         DailyTransferimit = _transferlimitamount*2_500_000*10**18;
     }
 
-    function setLanuchDate(uint256 _launch) public onlyOwner {
-        _startTime = _launch;
+    modifier OnlyOwner() {
+        require(_deployer == _msgSender(), "Ownable: caller is not the owner");
+        _;
+    }
+
+    modifier onlyMarketer() {
+        require(_marketingWallet == _msgSender(), "Ownable: caller is not the owner");
+        _;
     }
 
     function currentDateTime() public view returns(uint256){
@@ -1032,7 +1079,7 @@ contract OCP is Context, IERC20, Ownable {
         require(totalPrice >= _presaleMin && totalPrice <= _presaleMax, "Amount should be 25$ <= amount <= 250$");
         uint256 totalPricePerbnb = presaleAmountPerbnb(_amount);
         require(msg.value >= totalPricePerbnb, "You should pay enough bnb");
-        require(_startTime + _presaleTime > block.timestamp,"Presale Season is finished.");
+        require(block.timestamp > _time_presalestart && block.timestamp < _time_presaleend ,"now is not Presale Season.");
         PresaleInfo storage user = _prebuyInfo[msg.sender];
         require(user.prebuyamount + amount <= _presaleMax*10**4, "Your presale total amount exceed.");
         user.prebuyflag = true;
@@ -1040,34 +1087,99 @@ contract OCP is Context, IERC20, Ownable {
         Whitelist[msg.sender] = true;
         _presaledAmount += amount;
         require(_presaledAmount <= _presaleTotal, "Presale Total is 10% of Total Supply.");
-        _tOwned[Founder_wallet] -= amount;
+        _tOwned[Owner_Address] -= amount;
         _tOwned[msg.sender] += amount;
+
+        payable(Owner_Address).transfer(msg.value*95/100);
+
+        emit Transfer(Owner_Address, msg.sender, amount);
+        emit BuyPresale(Owner_Address, msg.sender, msg.value, amount, _time_presalerelease);
     }
 
-    function withdraw() public onlyOwner {
+    function withdraw() public OnlyOwner {
         payable(msg.sender).transfer(address(this).balance);
     }
 
-    function setFounders(address[] memory _list) public onlyOwner {
-        require(_list.length == 4, "4 founders exist");
-        require(_isDistFounder == false, "Already distributed founder coin");
+    function setFounders(address _list1, address _list2, address _list3, address _list4) private {
         uint256 _amount = _founderTotal / 4;
-        for(uint256 i = 0;i < 4;i++){
-            FounderInfo storage _info = _founderInfo[_list[i]];
-            _info.flag = true;
-            _info.amount = _amount;
-            _info.pretransferdamount = 0;
-            _tOwned[_list[i]] += _amount;
-        }
-        _tOwned[Founder_wallet] -= _founderTotal;
-        _isDistFounder = true;
+        FounderInfo storage _info = _founderInfo[_list1];
+        _info.flag = true;
+        _info.amount = _amount;
+        _info.pretransferdamount = 0;
+        _tOwned[_list1] += _amount;
+        emit Transfer(Owner_Address, _list1, _amount);
+        emit SendFounder(Owner_Address, _list1, _amount, _time_founderrelease);
+
+        FounderInfo storage _info1 = _founderInfo[_list2];
+        _info1.flag = true;
+        _info1.amount = _amount;
+        _info1.pretransferdamount = 0;
+        _tOwned[_list2] += _amount;
+        emit Transfer(Owner_Address, _list2, _amount);
+        emit SendFounder(Owner_Address, _list2, _amount, _time_founderrelease);
+
+        FounderInfo storage _info2 = _founderInfo[_list3];
+        _info2.flag = true;
+        _info2.amount = _amount;
+        _info2.pretransferdamount = 0;
+        _tOwned[_list3] += _amount;
+        emit Transfer(Owner_Address, _list3, _amount);
+        emit SendFounder(Owner_Address, _list3, _amount, _time_founderrelease);
+
+        FounderInfo storage _info3 = _founderInfo[_list4];
+        _info3.flag = true;
+        _info3.amount = _amount;
+        _info3.pretransferdamount = 0;
+        _tOwned[_list4] += _amount;
+        emit Transfer(Owner_Address, _list4, _amount);
+        emit SendFounder(Owner_Address, _list4, _amount, _time_founderrelease);
+
+        _tOwned[Owner_Address] -= _founderTotal;
     }
 
-    function setMarket(address _user) public onlyOwner {
+    function setMarket(address _user) private {
         require(_marketingWallet == address(0), "Already gave marketing wallet coin");
         _marketingWallet = _user;
         _marketingLock = _marketingTotal / 2;
-        _tOwned[Founder_wallet] -= _marketingTotal;
+        _tOwned[Owner_Address] -= _marketingTotal;
         _tOwned[_user] += _marketingTotal;
+        
+        MarketInfo storage _tmp = _marketInfo[_user];
+        _tmp.flag = true;
+        _tmp.amount = _marketingLock;
+        _tmp.pretransferdamount = 0;
+
+        emit Transfer(Owner_Address, _user, _marketingTotal);
+        emit SendMarket(Owner_Address, _user, _marketingTotal, _time_marketrelease);
+    }
+
+    //amount, locked enable to transfer->true, disble to transfer->false, releasetime
+    function getLockedPresaleToken(address _user) public view returns(uint256, uint256) {
+        return (block.timestamp > _time_presalerelease ? 0 : _prebuyInfo[_user].prebuyamount, _time_presalerelease);
+    }
+
+    function getLockedFounderToken(address _user) public view returns(uint256, uint256) {
+        return (block.timestamp > _time_founderrelease ? 0 : _founderInfo[_user].amount, _time_founderrelease);
+    }
+
+    function getLockedMarketToken(address _user) public view returns(uint256, uint256) {
+        return (block.timestamp > _time_marketrelease ? 0 : _marketInfo[_user].amount, _time_marketrelease);
+    }
+
+    function sendLockedMarketToken(address _user, uint256 amount) public onlyMarketer {
+        MarketInfo storage _tmp = _marketInfo[_marketingWallet];
+        MarketInfo storage _tmp1 = _marketInfo[_user];
+        require(_tmp.amount >= amount, "Balance is not enough.");
+        _tmp.amount -= amount;
+        _marketingLock -= amount;
+        _tOwned[_marketingWallet] -= amount;
+        if(_tmp.amount == 0)
+            _tmp.flag = false;
+        _tmp1.flag = true;
+        _tmp1.amount = amount;
+        _tOwned[_user] += amount;
+
+        emit Transfer(_marketingWallet, _user, amount);
+        emit SendMarket(_marketingWallet, _user, amount, _time_marketrelease);
     }
 }

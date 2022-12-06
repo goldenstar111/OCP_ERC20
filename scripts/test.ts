@@ -22,9 +22,13 @@ async function main() {
   console.log("addr1: ",await addr1.getAddress());
   console.log("addr2: ",await addr2.getAddress());
   console.log("addr3: ",await addr3.getAddress());
-  const instance = await ethers.getContractAt("OCP", "0x1c4C0575a6837700B73C19E436EE1dD3b7CC7eBc");
+
+  const provider = ethers.getDefaultProvider();
+  const _block = await ethers.provider.getBlock(23348547)
+  console.log("timestamp", _block.timestamp)
+  // const instance = await ethers.getContractAt("OCP", "0x1c4C0575a6837700B73C19E436EE1dD3b7CC7eBc");
   // await instance.mint(ethers.BigNumber.from(20));
-  console.log("Mint Complete")
+  // console.log("Mint Complete")
 
 }
 
