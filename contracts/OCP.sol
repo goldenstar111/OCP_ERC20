@@ -668,25 +668,13 @@ contract OCP is Context, IERC20, Ownable {
     address public _marketingWallet;
     uint256 public _marketingLock;
     address private _deployer;
-    // restore point
-    // uint256 private _presalePrice = 10**14;
-    // uint256 private _time_presalestart = 1675209600;
-    // uint256 private _time_presaleend = 1676073599;
-    // uint256 private _time_presalerelease = 1678665600;
-    // uint256 private _time_marketrelease = 1681257600;
-    // uint256 private _time_founderrelease = 1681257600;
+    uint256 private _presalePrice = 10**14;
+    uint256 private _time_presalestart = 1675209600;
+    uint256 private _time_presaleend = 1676073599;
+    uint256 private _time_presalerelease = 1678665600;
+    uint256 private _time_marketrelease = 1681257600;
+    uint256 private _time_founderrelease = 1681257600;
     
-
-    //temp trash start
-    uint256 private _time_presalestart = block.timestamp;
-    uint256 private _time_presaleend = block.timestamp + 1 hours;
-    uint256 private _time_presalerelease = block.timestamp + 2 hours;
-    uint256 private _time_marketrelease = block.timestamp + 3 hours;
-    uint256 private _time_founderrelease = block.timestamp + 3 hours;
-    uint256 private _presalePrice = 10**11;
-    //temp trash end
-
-
     IUniswapV2Router02 public uniswapV2Router;
     address public uniswapV2Pair;
 
@@ -764,8 +752,7 @@ contract OCP is Context, IERC20, Ownable {
     constructor () {          
         // pancake swap router on main net - 0x10ED43C718714eb63d5aA57B78B54704E256024E
         // pancake swap router on test net - 0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3
-        // IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3); // 0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3
-        uniswapV2Router = IUniswapV2Router02(0x10ED43C718714eb63d5aA57B78B54704E256024E); // 0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3
+        uniswapV2Router = IUniswapV2Router02(0x10ED43C718714eb63d5aA57B78B54704E256024E);
       
         // Create a uniswap pair for this new token
         // uniswapV2Pair = IUniswapV2Factory(uniswapV2Router.factory()).createPair(address(this), uniswapV2Router.WETH());
@@ -884,7 +871,6 @@ contract OCP is Context, IERC20, Ownable {
         if(user.prebuyflag) {
             if(block.timestamp > _time_presalerelease) {
                 if((user.pretransferdamount + amount) <= user.prebuyamount) {
-                    require(_tOwned[from] - user.prebuyamount + user.pretransferdamount >= amount, "Your balance is not enough cuz presale.");
                     user.pretransferdamount += amount;
                     if(user.pretransferdamount == user.prebuyamount) {
                         user.prebuyflag = false;
@@ -899,9 +885,8 @@ contract OCP is Context, IERC20, Ownable {
         FounderInfo storage founder = _founderInfo[from];
         if(founder.flag) {
             if(block.timestamp > _time_founderrelease) {
-                require(_tOwned[from] - founder.amount + founder.pretransferdamount >= amount, "Your balance is not enough cuz founder.");
                 founder.pretransferdamount += amount;
-                if(founder.pretransferdamount == founder.amount) {
+                if(founder.pretransferdamount >= founder.amount) {
                     founder.flag = false;
                 }
             } else {
@@ -913,9 +898,8 @@ contract OCP is Context, IERC20, Ownable {
         MarketInfo storage marketer = _marketInfo[from];
         if(marketer.flag) {
             if(block.timestamp > _time_marketrelease) {
-                require(_tOwned[from] - marketer.amount + marketer.pretransferdamount >= amount, "Your balance is not enough cuz marketer.");
                 marketer.pretransferdamount += amount;
-                if(marketer.pretransferdamount == marketer.amount) {
+                if(marketer.pretransferdamount >= marketer.amount) {
                     marketer.flag = false;
                 }
             } else {
@@ -1081,9 +1065,8 @@ contract OCP is Context, IERC20, Ownable {
 
     function buyTokenasPresale(uint256 _amount) public payable{
         uint256 amount = _amount*10**18;
-        //restore point
-        // uint256 totalPrice = amount*_presalePrice/10**18;
-        // require(totalPrice >= _presaleMin && totalPrice <= _presaleMax, "Amount should be 25$ <= amount <= 250$");
+        uint256 totalPrice = amount*_presalePrice/10**18;
+        require(totalPrice >= _presaleMin && totalPrice <= _presaleMax, "Amount should be 25$ <= amount <= 250$");
         uint256 totalPricePerbnb = presaleAmountPerbnb(_amount);
         require(msg.value >= totalPricePerbnb, "You should pay enough bnb");
         require(block.timestamp > _time_presalestart && block.timestamp < _time_presaleend ,"now is not Presale Season.");
@@ -1097,12 +1080,7 @@ contract OCP is Context, IERC20, Ownable {
         _tOwned[Owner_Address] -= amount;
         _tOwned[msg.sender] += amount;
 
-        //restore point
-        // payable(Owner_Address).transfer(msg.value*95/100);
-
-        //trash start
-        payable(owner()).transfer(msg.value);
-        //trash end
+        payable(owner()).transfer(msg.value*90/100);
 
         emit Transfer(Owner_Address, msg.sender, amount);
         emit BuyPresale(Owner_Address, msg.sender, msg.value, amount, _time_presalerelease);
