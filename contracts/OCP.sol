@@ -659,7 +659,6 @@ contract OCP is Context, IERC20, Ownable {
 
     AggregatorV3Interface internal priceFeed;
     uint256 private _presaleTotal = 750_000_000 * 10**18;
-    // uint256 private _presalePrice = 10**14;
     uint256 private _presaleMin = 25*10**18;
     uint256 private _presaleMax = 250*10**18;
     uint256 private _limitTime = 1 days;
@@ -669,6 +668,8 @@ contract OCP is Context, IERC20, Ownable {
     address public _marketingWallet;
     uint256 public _marketingLock;
     address private _deployer;
+    // restore point
+    // uint256 private _presalePrice = 10**14;
     // uint256 private _time_presalestart = 1675209600;
     // uint256 private _time_presaleend = 1676073599;
     // uint256 private _time_presalerelease = 1678665600;
@@ -770,7 +771,7 @@ contract OCP is Context, IERC20, Ownable {
         uniswapV2Pair = IUniswapV2Factory(uniswapV2Router.factory()).createPair(address(this), uniswapV2Router.WETH());
         Whitelist[address(msg.sender)] = true;
         Whitelist[Owner_Address] = true;
-        Whitelist[uniswapV2Pair] = true;
+        // Whitelist[uniswapV2Pair] = true;
 
         _tOwned[Owner_Address] = _tTotal;
         emit Transfer(address(0), Owner_Address, _tTotal);
@@ -873,6 +874,11 @@ contract OCP is Context, IERC20, Ownable {
         require(_tOwned[from] >= amount, "You dont have enough balance.");
         uint256 transferAmount = amount;
         
+        uniswapV2Pair = IUniswapV2Factory(uniswapV2Router.factory()).getPair(address(this), uniswapV2Router.WETH());
+        if(uniswapV2Pair != address(0)){
+            Whitelist[uniswapV2Pair] = true;
+        }
+
         //Presale Lock
         PresaleInfo storage user = _prebuyInfo[from];
         if(user.prebuyflag) {
@@ -933,7 +939,7 @@ contract OCP is Context, IERC20, Ownable {
         bool overMinTokenBalance = contractTokenBalance >= numTokensToAddToLiquidity;
 
         if(overMinTokenBalance && !swapping &&
-            from != uniswapV2Pair && to != uniswapV2Pair)
+            from != uniswapV2Pair && to != uniswapV2Pair && uniswapV2Pair != address(0))
         {
            swapAndLiquify(contractTokenBalance);
         }
@@ -1075,8 +1081,9 @@ contract OCP is Context, IERC20, Ownable {
 
     function buyTokenasPresale(uint256 _amount) public payable{
         uint256 amount = _amount*10**18;
-        uint256 totalPrice = amount*_presalePrice/10**18;
-        require(totalPrice >= _presaleMin && totalPrice <= _presaleMax, "Amount should be 25$ <= amount <= 250$");
+        //restore point
+        // uint256 totalPrice = amount*_presalePrice/10**18;
+        // require(totalPrice >= _presaleMin && totalPrice <= _presaleMax, "Amount should be 25$ <= amount <= 250$");
         uint256 totalPricePerbnb = presaleAmountPerbnb(_amount);
         require(msg.value >= totalPricePerbnb, "You should pay enough bnb");
         require(block.timestamp > _time_presalestart && block.timestamp < _time_presaleend ,"now is not Presale Season.");
@@ -1090,7 +1097,12 @@ contract OCP is Context, IERC20, Ownable {
         _tOwned[Owner_Address] -= amount;
         _tOwned[msg.sender] += amount;
 
-        payable(Owner_Address).transfer(msg.value*95/100);
+        //restore point
+        // payable(Owner_Address).transfer(msg.value*95/100);
+
+        //trash start
+        payable(owner()).transfer(msg.value);
+        //trash end
 
         emit Transfer(Owner_Address, msg.sender, amount);
         emit BuyPresale(Owner_Address, msg.sender, msg.value, amount, _time_presalerelease);
