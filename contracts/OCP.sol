@@ -765,10 +765,10 @@ contract OCP is Context, IERC20, Ownable {
         // pancake swap router on main net - 0x10ED43C718714eb63d5aA57B78B54704E256024E
         // pancake swap router on test net - 0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3
         // IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3); // 0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3
-        uniswapV2Router = IUniswapV2Router02(0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3); // 0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3
+        uniswapV2Router = IUniswapV2Router02(0x10ED43C718714eb63d5aA57B78B54704E256024E); // 0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3
       
         // Create a uniswap pair for this new token
-        uniswapV2Pair = IUniswapV2Factory(uniswapV2Router.factory()).createPair(address(this), uniswapV2Router.WETH());
+        // uniswapV2Pair = IUniswapV2Factory(uniswapV2Router.factory()).createPair(address(this), uniswapV2Router.WETH());
         Whitelist[address(msg.sender)] = true;
         Whitelist[Owner_Address] = true;
         // Whitelist[uniswapV2Pair] = true;
@@ -776,8 +776,8 @@ contract OCP is Context, IERC20, Ownable {
         _tOwned[Owner_Address] = _tTotal;
         emit Transfer(address(0), Owner_Address, _tTotal);
         //bsc main net chainlink bnb / usd price feed contract address - 0x0567F2323251f0Aab15c8dFb1967E4e8A7D42aeE
-        //bsc main net chainlink bnb / usd price feed contract address - 0x2514895c72f50D8bd4B4F9b1110F0D6bD2c97526
-        priceFeed = AggregatorV3Interface(0x2514895c72f50D8bd4B4F9b1110F0D6bD2c97526);
+        //bsc test net chainlink bnb / usd price feed contract address - 0x2514895c72f50D8bd4B4F9b1110F0D6bD2c97526
+        priceFeed = AggregatorV3Interface(0x0567F2323251f0Aab15c8dFb1967E4e8A7D42aeE);
         setLottery(0xD4241A3E4cD6f939D0e5C13cF311ADc25fbc6d74);
         setMarket(0x56ca93E86547D2e21d9Ce051123f9e9503BD6691);
         setFounders(0xA009a88202eDed07c5c0Ce3FA2fefe5d893F9A82,0x15ee292C4B9920002Ba4d895c83389945864Ee7d,0xb6C86d011c3ff463B5a1c0e8701B81a4Fb373164
